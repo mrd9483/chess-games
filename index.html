@@ -1,31 +1,454 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Mrd9483 Chess Games</title>
+    <title>Mrd9483 Chess Games Dashboard</title>
+    
+    <!-- Chess Libraries -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    
     <style>
-        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .game { border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px; }
-        .stats { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-        .recent { background: #e8f4fd; }
-        .won { background: #e8fdea; }
-        .lost { background: #f4e8e8; }
-        pre { background: #f8f8f8; padding: 10px; overflow-x: auto; }
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background-color: #f8fafc;
+        }
+        
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+        
+        .tab-button {
+            padding: 12px 24px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #64748b;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .tab-button:hover {
+            color: #3b82f6;
+            background-color: #f1f5f9;
+        }
+        
+        .tab-button.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Existing styles */
+        .game { 
+            border: 1px solid #ddd; 
+            margin: 10px 0; 
+            padding: 15px; 
+            border-radius: 8px; 
+            background: white;
+        }
+        
+        .stats { 
+            background: #f5f5f5; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+        }
+        
+        .recent { 
+            background: #e8f4fd; 
+        }
+        
+        .won { 
+            background: #e8fdea; 
+        }
+        
+        .lost { 
+            background: #f4e8e8; 
+        }
+        
+        pre { 
+            background: #f8f8f8; 
+            padding: 10px; 
+            overflow-x: auto; 
+            font-size: 12px;
+        }
+        
+        /* Fundamentals styles */
+        .fundamentals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card.blue { border-left-color: #3b82f6; }
+        .stat-card.green { border-left-color: #10b981; }
+        .stat-card.red { border-left-color: #ef4444; }
+        .stat-card.purple { border-left-color: #8b5cf6; }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        
+        .stat-sublabel {
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+        
+        .analysis-table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .analysis-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .analysis-table th {
+            background: #f8fafc;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .analysis-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .analysis-table tr:hover {
+            background: #f9fafb;
+        }
+        
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            gap: 4px;
+        }
+        
+        .badge.perfect { background: #dcfce7; color: #166534; }
+        .badge.good { background: #dbeafe; color: #1d4ed8; }
+        .badge.mixed { background: #fef3c7; color: #92400e; }
+        .badge.poor { background: #fee2e2; color: #dc2626; }
+        
+        .alert {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+        
+        .alert h3 {
+            margin: 0 0 8px 0;
+            color: #92400e;
+        }
+        
+        .alert ul {
+            margin: 0;
+            color: #92400e;
+        }
     </style>
 </head>
 <body>
-    <h1>Mrd9483 Chess Games</h1>
-    <div id="stats" class="stats">Loading statistics...</div>
-    <div id="games">Loading games...</div>
+    <h1>Mrd9483 Chess Games Dashboard</h1>
+    
+    <!-- Tab Navigation -->
+    <div class="tab-nav">
+        <button class="tab-button active" onclick="showTab('games')">Recent Games</button>
+        <button class="tab-button" onclick="showTab('fundamentals')">Fundamentals Analysis</button>
+        <button class="tab-button" onclick="showTab('stats')">Statistics</button>
+    </div>
+    
+    <!-- Games Tab -->
+    <div id="games-tab" class="tab-content active">
+        <div id="stats" class="stats">Loading statistics...</div>
+        
+        <!-- Test Chess Board -->
+        <div id="gameViewer" style="margin: 20px 0; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h4>Game Viewer</h4>
+                <button onclick="hideGameViewer()" style="padding: 6px 12px; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">← Back to Games</button>
+            </div>
+            <div id="board" style="width: 400px; margin: 10px 0;"></div>
+            <div style="margin: 10px 0;">
+                <button id="prevBtn" onclick="previousMove()" style="padding: 8px 16px; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">← Previous</button>
+                <button id="nextBtn" onclick="nextMove()" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">Next →</button>
+                <button onclick="goToStart()" style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">Start</button>
+                <button onclick="goToEnd()" style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer;">End</button>
+            </div>
+            <div id="moveInfo" style="font-size: 14px; color: #6b7280; margin-top: 10px;">No game loaded</div>
+        </div>
+        
+        <div id="games">Loading games...</div>
+    </div>
+    
+    <!-- Fundamentals Tab -->
+    <div id="fundamentals-tab" class="tab-content">
+        <div class="fundamentals-grid">
+            <div class="stat-card blue">
+                <div class="stat-label">Fundamentals Rate</div>
+                <div class="stat-number" id="fundamentals-rate">--%</div>
+                <div class="stat-sublabel" id="fundamentals-count">-- games</div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-label">Italian System</div>
+                <div class="stat-number" id="italian-rate">--%</div>
+                <div class="stat-sublabel" id="italian-count">-- as White</div>
+            </div>
+            <div class="stat-card red">
+                <div class="stat-label">Early Mistakes</div>
+                <div class="stat-number" id="mistake-count">--</div>
+                <div class="stat-sublabel">Self-defeating moves</div>
+            </div>
+            <div class="stat-card purple">
+                <div class="stat-label">Recent Trend</div>
+                <div class="stat-number" id="recent-trend">--/5</div>
+                <div class="stat-sublabel">Last 5 games</div>
+            </div>
+        </div>
+        
+        <div class="analysis-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Game</th>
+                        <th>Fundamentals</th>
+                        <th>Opening</th>
+                        <th>Issues</th>
+                        <th>Result</th>
+                    </tr>
+                </thead>
+                <tbody id="analysis-tbody">
+                    <tr><td colspan="5">Loading analysis...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="alert">
+            <h3>🎯 Focus Areas</h3>
+            <ul id="focus-areas">
+                <li>Loading recommendations...</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Stats Tab -->
+    <div id="stats-tab" class="tab-content">
+        <div class="stats">
+            <h3>Detailed Statistics</h3>
+            <div id="detailed-stats">Loading detailed statistics...</div>
+        </div>
+    </div>
 
     <script>
+        let allGamesData = [];
+        let board = null;
+        let game = null;
+        let currentGameMoves = [];
+        let currentMoveIndex = 0;
+        let currentGame = null;
+        
+        // Initialize chess board
+        function initBoard() {
+            console.log('Initializing chess board...');
+            
+            const config = {
+                draggable: false, // Disable dragging for move-by-move viewing
+                position: 'start',
+                pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+                onLoad: function() {
+                    console.log('Chess board loaded successfully');
+                }
+            };
+            
+            try {
+                board = Chessboard('board', config);
+                game = new Chess();
+                console.log('Board and game initialized');
+            } catch (error) {
+                console.error('Error initializing chess board:', error);
+            }
+        }
+        
+        // Load PGN into board
+        function loadPGN(pgn) {
+            if (!game) return;
+            
+            game.load_pgn(pgn);
+            currentGameMoves = game.history();
+            currentMoveIndex = 0;
+            currentGame = game;
+            
+            // Reset to starting position
+            game.reset();
+            board.position(game.fen());
+            
+            updateMoveInfo();
+            updateMoveButtons();
+        }
+        
+        // Move controls
+        function previousMove() {
+            if (currentMoveIndex > 0) {
+                currentMoveIndex--;
+                game.reset();
+                for (let i = 0; i < currentMoveIndex; i++) {
+                    game.move(currentGameMoves[i]);
+                }
+                board.position(game.fen());
+                updateMoveInfo();
+                updateMoveButtons();
+            }
+        }
+        
+        function nextMove() {
+            if (currentMoveIndex < currentGameMoves.length) {
+                game.move(currentGameMoves[currentMoveIndex]);
+                currentMoveIndex++;
+                board.position(game.fen());
+                updateMoveInfo();
+                updateMoveButtons();
+            }
+        }
+        
+        function goToStart() {
+            currentMoveIndex = 0;
+            game.reset();
+            board.position(game.fen());
+            updateMoveInfo();
+            updateMoveButtons();
+        }
+        
+        function goToEnd() {
+            currentMoveIndex = currentGameMoves.length;
+            game.reset();
+            for (let i = 0; i < currentGameMoves.length; i++) {
+                game.move(currentGameMoves[i]);
+            }
+            board.position(game.fen());
+            updateMoveInfo();
+            updateMoveButtons();
+        }
+        
+        function updateMoveInfo() {
+            const moveInfo = document.getElementById('moveInfo');
+            if (currentGameMoves.length === 0) {
+                moveInfo.textContent = 'No game loaded';
+            } else {
+                moveInfo.textContent = `Move ${currentMoveIndex} of ${currentGameMoves.length}`;
+            }
+        }
+        
+        function updateMoveButtons() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            prevBtn.disabled = currentMoveIndex === 0;
+            nextBtn.disabled = currentMoveIndex === currentGameMoves.length;
+            
+            prevBtn.style.opacity = prevBtn.disabled ? '0.5' : '1';
+            nextBtn.style.opacity = nextBtn.disabled ? '0.5' : '1';
+        }
+        
+        // Load test game
+        function loadTestGame() {
+            const testPGN = '1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. O-O Nf6 5. d3 O-O';
+            loadPGN(testPGN);
+        }
+        
+        // Load specific game from your data
+        function loadGame(gameIndex) {
+            if (!allGamesData[gameIndex]) return;
+            
+            const gameData = allGamesData[gameIndex];
+            loadPGN(gameData.pgn);
+            showGameViewer();
+        }
+        
+        function showGameViewer() {
+            document.getElementById('gameViewer').style.display = 'block';
+            document.getElementById('games').style.display = 'none'; // Hide recent games
+        }
+        
+        function hideGameViewer() {
+            document.getElementById('gameViewer').style.display = 'none';
+            document.getElementById('games').style.display = 'block'; // Show recent games
+        }
+        
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+        
         async function loadGames() {
             try {
                 const currentMonth = new Date().toISOString().slice(0, 7);
                 const response = await fetch(`./data/games-${currentMonth}.json`);
                 const data = await response.json();
+                allGamesData = data.games || [];
+                
+                // Initialize chess board
+                initBoard();
                 
                 displayStats(data);
-                displayGames(data.games || []);
+                displayGames(allGamesData);
+                displayFundamentalsAnalysis(allGamesData);
+                displayDetailedStats(allGamesData);
             } catch (error) {
                 document.getElementById('games').innerHTML = 'Error loading games: ' + error;
             }
@@ -48,7 +471,7 @@
         }
         
         function displayGames(games) {
-            const recentGames = games.slice(-20).reverse(); // Last 20 games
+            const recentGames = games.slice(-20).reverse();
             const gamesHtml = recentGames.map((game, index) => {
                 const isRecent = index < 3;
                 const isWhite = game.white.username === 'Mrd9483';
@@ -58,11 +481,13 @@
                 const opponentUsername = game[opponentColor].username;
                 const myRating = game[myColor].rating;
                 const opponentRating = game[opponentColor].rating;
+                const gameIndex = games.length - 1 - index; // Convert to original index
 
                 return `
                     <div class="game ${isRecent ? 'recent' : ''} ${myResult === 'win' ? 'won' : 'lost'}">
                         <h4>vs ${opponentUsername} (I played ${myColor}) - ${myResult}</h4>
                         <p>Time: ${game.time_class}, My Rating: ${myRating}, Opponent Rating: ${opponentRating}</p>
+                        <button onclick="loadGame(${gameIndex})" style="padding: 6px 12px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; font-size: 12px;">See Board</button>
                         <details>
                             <summary>PGN</summary>
                             <pre>${game.pgn}</pre>
@@ -74,6 +499,246 @@
             document.getElementById('games').innerHTML = `
                 <h3>Recent Games</h3>
                 ${gamesHtml}
+            `;
+        }
+        
+        function analyzeGame(game) {
+            const isWhite = game.white.username === 'Mrd9483';
+            const pgn = game.pgn;
+            
+            // Extract moves from PGN (remove headers and clock annotations)
+            const moveText = pgn.split('\n\n')[1] || pgn; // Get moves after headers
+            const cleanMoves = moveText.replace(/\{[^}]*\}/g, '').replace(/\d+\./g, '').trim();
+            const moves = cleanMoves.split(/\s+/).filter(move => 
+                move && 
+                move !== '1-0' && 
+                move !== '0-1' && 
+                move !== '1/2-1/2' && 
+                move !== '..' && 
+                move !== '...'
+            );
+            
+            // Debug logging for the EHJ0210 game
+            if (game.black && game.black.username === 'EHJ0210') {
+                console.log('EHJ0210 game analysis:');
+                console.log('Original PGN:', pgn.substring(0, 200) + '...');
+                console.log('Move text:', moveText.substring(0, 100) + '...');
+                console.log('Clean moves:', cleanMoves.substring(0, 100) + '...');
+                console.log('Parsed moves:', moves.slice(0, 10));
+            }
+            
+            if (isWhite && moves.length >= 2) {
+                const move1 = moves[0]; // e4 (your move)
+                const opponentResponse1 = moves[1]; // e5 (opponent's response)
+                const move2 = moves[2]; // Nf3 (your move)
+                const opponentResponse2 = moves[3]; // opponent's response to Nf3
+                const move3 = moves[4]; // Bc4 (your move)
+                
+                // Check for fundamental principles
+                const hasCastled = moves.includes('O-O') || moves.includes('O-O-O');
+                const hasDevelopedKnights = moves.includes('Nf3') || moves.includes('Nc3');
+                const hasDevelopedBishops = moves.includes('Bc4') || moves.includes('Bd3') || moves.includes('Be2');
+                const hasCentralPawn = move1 === 'e4' || move1 === 'd4';
+                const hasQueenEarly = moves.slice(0, 6).some(move => move.startsWith('Q'));
+                const hasPawnGrabs = moves.slice(0, 8).some(move => move.includes('x') && move.includes('P'));
+                
+                // Check for specific opening patterns
+                if (move1 === 'e4') {
+                    if (move2 === 'Nf3' && move3 === 'Bc4') {
+                        // Italian Game: 1.e4 e5 2.Nf3 3.Bc4
+                        const fundamentals = [];
+                        if (hasCastled) fundamentals.push('Castled');
+                        if (hasDevelopedKnights) fundamentals.push('Knights Developed');
+                        if (hasDevelopedBishops) fundamentals.push('Bishops Developed');
+                        if (hasCentralPawn) fundamentals.push('Central Pawn');
+                        
+                        const fundamentalScore = fundamentals.length;
+                        let rating = 'mixed';
+                        if (fundamentalScore >= 4) rating = 'perfect';
+                        else if (fundamentalScore >= 3) rating = 'good';
+                        
+                        return {
+                            fundamentals: rating,
+                            opening: 'Italian Game ✅',
+                            earlyMistakes: hasQueenEarly || hasPawnGrabs,
+                            details: fundamentals.join(', ')
+                        };
+                    } else if (move2 === 'Nf3') {
+                        // Good development: 1.e4 e5 2.Nf3
+                        const fundamentals = [];
+                        if (hasCastled) fundamentals.push('Castled');
+                        if (hasDevelopedKnights) fundamentals.push('Knights Developed');
+                        if (hasCentralPawn) fundamentals.push('Central Pawn');
+                        
+                        return {
+                            fundamentals: fundamentals.length >= 2 ? 'good' : 'mixed',
+                            opening: 'King\'s Pawn Development',
+                            earlyMistakes: hasQueenEarly || hasPawnGrabs,
+                            details: fundamentals.join(', ')
+                        };
+                    } else if (move2 === 'Qh5') {
+                        return {
+                            fundamentals: 'poor',
+                            opening: 'Early Queen Attack ❌',
+                            earlyMistakes: true,
+                            details: 'Queen too early'
+                        };
+                    } else if (move2 === 'Nc3') {
+                        return {
+                            fundamentals: 'mixed',
+                            opening: 'Vienna Game',
+                            earlyMistakes: hasQueenEarly || hasPawnGrabs,
+                            details: 'Vienna variation'
+                        };
+                    } else if (move2 === 'd4') {
+                        return {
+                            fundamentals: 'good',
+                            opening: 'Scotch Game',
+                            earlyMistakes: hasQueenEarly || hasPawnGrabs,
+                            details: 'Scotch opening'
+                        };
+                    }
+                } else if (move1 === 'd4') {
+                    return {
+                        fundamentals: 'good',
+                        opening: 'Queen\'s Pawn Game',
+                        earlyMistakes: hasQueenEarly || hasPawnGrabs,
+                        details: 'Queen\'s pawn opening'
+                    };
+                }
+                
+                // Generic analysis for other openings
+                const fundamentals = [];
+                if (hasCastled) fundamentals.push('Castled');
+                if (hasDevelopedKnights) fundamentals.push('Knights Developed');
+                if (hasDevelopedBishops) fundamentals.push('Bishops Developed');
+                if (hasCentralPawn) fundamentals.push('Central Pawn');
+                
+                return {
+                    fundamentals: fundamentals.length >= 2 ? 'good' : 'mixed',
+                    opening: 'Other Opening',
+                    earlyMistakes: hasQueenEarly || hasPawnGrabs,
+                    details: fundamentals.join(', ')
+                };
+            } else {
+                // Analyze black games for defensive soundness
+                const hasEarlyBlunders = pgn.includes('Qh4+') || pgn.includes('Bb4+');
+                const hasCastled = moves.includes('O-O') || moves.includes('O-O-O');
+                const hasDevelopedPieces = moves.some(move => move.startsWith('N') || move.startsWith('B'));
+                
+                const fundamentals = [];
+                if (hasCastled) fundamentals.push('Castled');
+                if (hasDevelopedPieces) fundamentals.push('Pieces Developed');
+                
+                return {
+                    fundamentals: hasEarlyBlunders ? 'mixed' : (fundamentals.length >= 1 ? 'good' : 'mixed'),
+                    opening: 'Defense',
+                    earlyMistakes: hasEarlyBlunders,
+                    details: fundamentals.join(', ')
+                };
+            }
+        }
+        
+        function displayFundamentalsAnalysis(games) {
+            const analyzed = games.map(game => ({
+                ...game,
+                analysis: analyzeGame(game)
+            }));
+            
+            const total = analyzed.length;
+            const perfectGames = analyzed.filter(g => g.analysis.fundamentals === 'perfect').length;
+            const goodGames = analyzed.filter(g => g.analysis.fundamentals === 'good').length;
+            const earlyMistakes = analyzed.filter(g => g.analysis.earlyMistakes).length;
+            const whiteGames = analyzed.filter(g => g.white.username === 'Mrd9483');
+            const italianGames = whiteGames.filter(g => g.analysis.opening === 'Italian Game ✅').length;
+            
+            const fundamentalsRate = total > 0 ? (((perfectGames + goodGames) / total) * 100).toFixed(1) : 0;
+            const italianRate = whiteGames.length > 0 ? ((italianGames / whiteGames.length) * 100).toFixed(1) : 0;
+            const recentGood = analyzed.slice(-5).filter(g => 
+                g.analysis.fundamentals === 'perfect' || g.analysis.fundamentals === 'good'
+            ).length;
+            
+            // Update stats
+            document.getElementById('fundamentals-rate').textContent = fundamentalsRate + '%';
+            document.getElementById('fundamentals-count').textContent = `${perfectGames + goodGames}/${total} games`;
+            document.getElementById('italian-rate').textContent = italianRate + '%';
+            document.getElementById('italian-count').textContent = `${italianGames}/${whiteGames.length} as White`;
+            document.getElementById('mistake-count').textContent = earlyMistakes;
+            document.getElementById('recent-trend').textContent = `${recentGood}/5`;
+            
+            // Update analysis table
+            const tableBody = document.getElementById('analysis-tbody');
+            tableBody.innerHTML = analyzed.slice(-10).reverse().map(game => {
+                const isWhite = game.white.username === 'Mrd9483';
+                const myColor = isWhite ? 'white' : 'black';
+                const opponentColor = isWhite ? 'black' : 'white';
+                const myResult = game[myColor].result;
+                const opponentUsername = game[opponentColor].username;
+                const gameDate = new Date(game.end_time * 1000).toLocaleDateString();
+                
+                return `
+                    <tr>
+                        <td>
+                            <div><strong>vs ${opponentUsername}</strong></div>
+                            <div style="font-size: 0.875rem; color: #6b7280;">${gameDate} • ${myColor}</div>
+                        </td>
+                        <td>
+                            <span class="badge ${game.analysis.fundamentals}">${game.analysis.fundamentals}</span>
+                        </td>
+                        <td>${game.analysis.opening}</td>
+                        <td>
+                            <div>${game.analysis.earlyMistakes ? '⚠️ Early mistakes' : '✅ Clean play'}</div>
+                            <div style="font-size: 0.75rem; color: #6b7280; margin-top: 2px;">${game.analysis.details || 'No details'}</div>
+                        </td>
+                        <td>
+                            <span class="badge ${myResult === 'win' ? 'good' : 'poor'}">${myResult}</span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            // Update focus areas
+            const focusAreas = document.getElementById('focus-areas');
+            const latestGame = analyzed[analyzed.length - 1];
+            const recommendations = [];
+            
+            if (latestGame && latestGame.analysis.fundamentals === 'perfect') {
+                recommendations.push('Latest Game: Perfect execution! Keep this consistency.');
+            }
+            recommendations.push(`Goal: 90%+ fundamentals rate (currently ${fundamentalsRate}%)`);
+            recommendations.push(`White Opening: Stick to Italian system: 1.e4 e5 2.Nf3 Nc6 3.Bc4 4.O-O 5.d3`);
+            if (earlyMistakes > 0) {
+                recommendations.push(`Eliminate early mistakes: ${earlyMistakes} games with self-defeating moves`);
+            }
+            
+            focusAreas.innerHTML = recommendations.map(rec => `<li>${rec}</li>`).join('');
+        }
+        
+        function displayDetailedStats(games) {
+            const wins = games.filter(g => 
+                (g.white.username === 'Mrd9483' && g.white.result === 'win') ||
+                (g.black.username === 'Mrd9483' && g.black.result === 'win')
+            ).length;
+            
+            const whiteGames = games.filter(g => g.white.username === 'Mrd9483');
+            const blackGames = games.filter(g => g.black.username === 'Mrd9483');
+            const whiteWins = whiteGames.filter(g => g.white.result === 'win').length;
+            const blackWins = blackGames.filter(g => g.black.result === 'win').length;
+            
+            const timeControls = {};
+            games.forEach(g => {
+                timeControls[g.time_class] = (timeControls[g.time_class] || 0) + 1;
+            });
+            
+            document.getElementById('detailed-stats').innerHTML = `
+                <h4>Performance Breakdown</h4>
+                <p><strong>Overall:</strong> ${wins}/${games.length} wins (${((wins/games.length)*100).toFixed(1)}%)</p>
+                <p><strong>As White:</strong> ${whiteWins}/${whiteGames.length} wins (${whiteGames.length > 0 ? ((whiteWins/whiteGames.length)*100).toFixed(1) : 0}%)</p>
+                <p><strong>As Black:</strong> ${blackWins}/${blackGames.length} wins (${blackGames.length > 0 ? ((blackWins/blackGames.length)*100).toFixed(1) : 0}%)</p>
+                <h4>Time Controls</h4>
+                ${Object.entries(timeControls).map(([tc, count]) => 
+                    `<p><strong>${tc}:</strong> ${count} games</p>`
+                ).join('')}
             `;
         }
         
