@@ -1,0 +1,42 @@
+name: Fetch Chess Games
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 6 AM UTC
+  workflow_dispatch:     # Manual trigger button
+  push:
+    branches: [main]     # Test on push
+
+jobs:
+  fetch-games:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write    # Needed to commit back
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Fetch current month games
+        run: |
+          mkdir -p data
+          CURRENT_MONTH=$(date +"%Y/%m")
+          PREV_MONTH=$(date -d "last month" +"%Y/%m")
+          
+          # Fetch current and previous month
+          curl -H "User-Agent: chess-games-tracker/1.0 (contact: matthewrdoyle@gmail.com)" \
+               "https://api.chess.com/pub/player/mrd9483/games/$CURRENT_MONTH" \
+               > "data/games-$(date +"%Y-%m").json" || echo "{}" > "data/games-$(date +"%Y-%m").json"
+               
+          curl -H "User-Agent: chess-games-tracker/1.0 (contact: matthewrdoyle@gmail.com)" \
+               "https://api.chess.com/pub/player/mrd9483/games/$PREV_MONTH" \
+               > "data/games-$(date -d "last month" +"%Y-%m").json" || echo "{}" > "data/games-$(date -d "last month" +"%Y-%m").json"
+      
+      - name: Commit and push
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add data/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update chess games - $(date '+%Y-%m-%d %H:%M')"
+            git push
+          fi

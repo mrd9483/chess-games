@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mrd9483 Chess Games</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .game { border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px; }
+        .stats { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .recent { background: #e8f4fd; }
+        pre { background: #f8f8f8; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Mrd9483 Chess Games</h1>
+    <div id="stats" class="stats">Loading statistics...</div>
+    <div id="games">Loading games...</div>
+
+    <script>
+        async function loadGames() {
+            try {
+                const currentMonth = new Date().toISOString().slice(0, 7);
+                const response = await fetch(`./data/games-${currentMonth}.json`);
+                const data = await response.json();
+                
+                displayStats(data);
+                displayGames(data.games || []);
+            } catch (error) {
+                document.getElementById('games').innerHTML = 'Error loading games: ' + error;
+            }
+        }
+        
+        function displayStats(data) {
+            const games = data.games || [];
+            const wins = games.filter(g => 
+                (g.white.username === 'mrd9483' && g.white.result === 'win') ||
+                (g.black.username === 'mrd9483' && g.black.result === 'win')
+            ).length;
+            
+            const totalGames = games.length;
+            const winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : 0;
+            
+            document.getElementById('stats').innerHTML = `
+                <h3>This Month: ${totalGames} games, ${wins} wins (${winRate}%)</h3>
+                <p>Last updated: ${new Date().toLocaleString()}</p>
+            `;
+        }
+        
+        function displayGames(games) {
+            const recentGames = games.slice(-10).reverse(); // Last 10 games
+            const gamesHtml = recentGames.map((game, index) => {
+                const isRecent = index < 3;
+                const userColor = game.white.username === 'mrd9483' ? 'white' : 'black';
+                const result = game[userColor].result;
+                const opponent = userColor === 'white' ? game.black.username : game.white.username;
+                
+                return `
+                    <div class="game ${isRecent ? 'recent' : ''}">
+                        <h4>vs ${opponent} (${userColor}) - ${result}</h4>
+                        <p>Time: ${game.time_class}, Rating: ${game[userColor].rating}</p>
+                        <details>
+                            <summary>PGN</summary>
+                            <pre>${game.pgn}</pre>
+                        </details>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('games').innerHTML = `
+                <h3>Recent Games</h3>
+                ${gamesHtml}
+            `;
+        }
+        
+        loadGames();
+    </script>
+</body>
+</html>
